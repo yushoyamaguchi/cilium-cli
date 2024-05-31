@@ -21,6 +21,9 @@ func newCmdMulticast() *cobra.Command {
 	cmd.AddCommand(
 		newCmdMulticastViewall(),
 	)
+	cmd.AddCommand(
+		newCmdMulticastViewnodes(),
+	)
 	return cmd
 }
 
@@ -46,4 +49,23 @@ func newCmdMulticastViewall() *cobra.Command {
 	}
 	return cmd
 
+}
+
+func newCmdMulticastViewnodes() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "viewnodes",
+		Short: "View list of nodes",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, _ := signal.NotifyContext(cmd.Context(), os.Interrupt)
+			nodes, err := k8sClient.ListNodes(ctx, metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			for _, node := range nodes.Items {
+				fmt.Printf("Node: %s\n", node.Name)
+			}
+			return nil
+		},
+	}
+	return cmd
 }

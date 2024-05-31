@@ -1,1 +1,1 @@
-$ BINDIR=../local/my-cilium-cli/bin/ make install
+BINDIR=../local/my-cilium-cli/bin/ make install
