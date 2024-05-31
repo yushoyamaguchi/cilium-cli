@@ -24,6 +24,9 @@ func newCmdMulticast() *cobra.Command {
 	cmd.AddCommand(
 		newCmdMulticastViewnodes(),
 	)
+	cmd.AddCommand(
+		newCmdMulticastViewCiliumIPs(),
+	)
 	return cmd
 }
 
@@ -63,6 +66,31 @@ func newCmdMulticastViewnodes() *cobra.Command {
 			}
 			for _, node := range nodes.Items {
 				fmt.Printf("Node: %s\n", node.Name)
+			}
+			return nil
+		},
+	}
+	return cmd
+}
+
+func newCmdMulticastViewCiliumIPs() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "viewciliumips",
+		Short: "View list of Cilium Internal IPs of nodes",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, _ := signal.NotifyContext(cmd.Context(), os.Interrupt)
+			nodes, err := k8sClient.ListNodes(ctx, metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			for _, node := range nodes.Items {
+				var internalIP string
+				for _, address := range node.Status.Addresses {
+					if address.Type == "InternalIP" {
+						internalIP = address.Address
+					}
+				}
+				fmt.Printf("Node: %s, Cilium IP: %s\n", node.Name, internalIP)
 			}
 			return nil
 		},
