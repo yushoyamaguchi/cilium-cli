@@ -9,6 +9,7 @@ import (
 	"os/signal"
 
 	"github.com/cilium/cilium-cli/defaults"
+	addressing "github.com/cilium/cilium/pkg/node/addressing"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -79,18 +80,18 @@ func newCmdMulticastViewCiliumIPs() *cobra.Command {
 		Short: "View list of Cilium Internal IPs of nodes",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, _ := signal.NotifyContext(cmd.Context(), os.Interrupt)
-			nodes, err := k8sClient.ListNodes(ctx, metav1.ListOptions{})
+			ciliumNodes, err := k8sClient.ListCiliumNodes(ctx)
 			if err != nil {
 				return err
 			}
-			for _, node := range nodes.Items {
-				var internalIP string
-				for _, address := range node.Status.Addresses {
-					if address.Type == "InternalIP" {
-						internalIP = address.Address
+			for _, node := range ciliumNodes.Items {
+				addrs := node.Spec.Addresses
+				for _, addr := range addrs {
+					if addr.AddrType() == addressing.NodeCiliumInternalIP {
+						fmt.Printf("Node: %s, Cilium IP: %s\n", node.Name, addr.IP)
 					}
 				}
-				fmt.Printf("Node: %s, Cilium IP: %s\n", node.Name, internalIP)
+
 			}
 			return nil
 		},
