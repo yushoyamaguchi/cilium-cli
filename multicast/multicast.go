@@ -85,11 +85,12 @@ func (m *Multicast) printCiliumPodInfo(ciliumPod corev1.Pod) (string, error) {
 func (m *Multicast) execInCiliumPod(ctx context.Context, ciliumPod corev1.Pod, command []string) (string, error) {
 	output, err := m.client.ExecInPod(ctx, ciliumPod.Namespace, ciliumPod.Name, defaults.AgentContainerName, command)
 	if err != nil {
-		return "", nil // even if there is no output, we should return nil error
+		return "", err
 	}
 	return output.String(), nil
 }
 
+// ListGroup lists multicast groups in every node
 func (m *Multicast) ListGroup() error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
@@ -100,14 +101,18 @@ func (m *Multicast) ListGroup() error {
 	}
 
 	for _, ciliumPod := range ciliumPods {
+		//Print cilium pod info
 		_, err := m.printCiliumPodInfo(ciliumPod)
 		if err != nil {
 			return err
 		}
 
-		output, err := m.execInCiliumPod(ctx, ciliumPod, []string{"cilium-dbg", "bpf", "multicast", "group", "list"})
+		//List multicast groups
+		cmd := []string{"cilium-dbg", "bpf", "multicast", "group", "list"}
+		output, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
 		if err != nil {
-			return err
+			fmt.Fprintf(m.params.Writer, "\n")
+			continue
 		}
 		fmt.Fprintln(m.params.Writer, output)
 	}
@@ -115,6 +120,7 @@ func (m *Multicast) ListGroup() error {
 	return nil
 }
 
+// ListSubscriber lists multicast subscribers in every node for the specified multicast group or all multicast groups
 func (m *Multicast) ListSubscriber() error {
 	if m.params.MulticastGroupIP == "" && !m.params.All {
 		return fmt.Errorf("group-ip or all flag must be specified")
@@ -137,16 +143,142 @@ func (m *Multicast) ListSubscriber() error {
 	}
 
 	for _, ciliumPod := range ciliumPods {
+		//Print cilium pod info
 		_, err := m.printCiliumPodInfo(ciliumPod)
 		if err != nil {
 			return err
 		}
 
-		output, err := m.execInCiliumPod(ctx, ciliumPod, []string{"cilium-dbg", "bpf", "multicast", "subscriber", "list", target})
+		//List multicast subscribers
+		cmd := []string{"cilium-dbg", "bpf", "multicast", "subscriber", "list", target}
+		output, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
+		if err != nil {
+			fmt.Fprintf(m.params.Writer, "\n")
+			continue
+		}
+		fmt.Fprintln(m.params.Writer, output)
+	}
+
+	return nil
+}
+
+// AddAllNodes add CiliumInternalIPs of all nodes to the specified multicast group as subscribers in every cilium-agent
+func (m *Multicast) AddAllNodes() error {
+	if m.params.MulticastGroupIP == "" {
+		return fmt.Errorf("group-ip must be specified")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
+	defer cancel()
+	ciliumPods, err := m.listCiliumPods(ctx)
+	if err != nil {
+		return err
+	}
+
+	//Create a map of ciliumInternalIPs of all nodes
+	ipToPodMap := make(map[v2.NodeAddress]string)
+	for _, ciliumPod := range ciliumPods {
+		ciliumInternalIP, err := m.getCiliumInternalIP(ciliumPod.Spec.NodeName)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(m.params.Writer, output)
+		ipToPodMap[ciliumInternalIP] = ciliumPod.Name
+	}
+
+	for _, ciliumPod := range ciliumPods {
+		//Print cilium pod info
+		_, err := m.printCiliumPodInfo(ciliumPod)
+		if err != nil {
+			return err
+		}
+
+		//If there are not specified multicast group, create it
+		cmd := []string{"cilium-dbg", "bpf", "multicast", "subscriber", "list", m.params.MulticastGroupIP}
+		_, err = m.execInCiliumPod(ctx, ciliumPod, cmd)
+		if err != nil {
+			cmd = []string{"cilium-dbg", "bpf", "multicast", "group", "add", m.params.MulticastGroupIP}
+			_, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
+			if err != nil {
+				fmt.Fprintf(m.params.Writer, "Unable to create multicast group %s in %s\n", m.params.MulticastGroupIP, ciliumPod.Name)
+				continue
+			}
+		}
+
+		//Add all ciliumInternalIPs of all nodes to the multicast group as subscribers
+		cnt := 0
+		for ip, podName := range ipToPodMap {
+			if ip.IP != "" && ciliumPod.Name != podName {
+				cmd = []string{"cilium-dbg", "bpf", "multicast", "subscriber", "add", m.params.MulticastGroupIP, ip.IP}
+				_, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
+				if err == nil {
+					cnt++
+				}
+			}
+		}
+		fmt.Fprintf(m.params.Writer, "Added %d subscribers to multicast group %s\n\n", cnt, m.params.MulticastGroupIP)
+	}
+
+	return nil
+}
+
+// DelAllNodes delete CiliumInternalIPs of all nodes from the specified multicast group's subscribers in every cilium-agent
+func (m *Multicast) DelAllNodes() error {
+	if m.params.MulticastGroupIP == "" {
+		return fmt.Errorf("group-ip must be specified")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
+	defer cancel()
+	ciliumPods, err := m.listCiliumPods(ctx)
+	if err != nil {
+		return err
+	}
+
+	//Create a map of ciliumInternalIPs of all nodes
+	ipToPodMap := make(map[v2.NodeAddress]string)
+	for _, ciliumPod := range ciliumPods {
+		ciliumInternalIP, err := m.getCiliumInternalIP(ciliumPod.Spec.NodeName)
+		if err != nil {
+			return err
+		}
+		ipToPodMap[ciliumInternalIP] = ciliumPod.Name
+	}
+
+	for _, ciliumPod := range ciliumPods {
+		//Print cilium pod info
+		_, err := m.printCiliumPodInfo(ciliumPod)
+		if err != nil {
+			return err
+		}
+
+		//If there are not specified multicast group, continue
+		cmd := []string{"cilium-dbg", "bpf", "multicast", "subscriber", "list", m.params.MulticastGroupIP}
+		output, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
+		if err != nil && output == "" {
+			fmt.Fprintf(m.params.Writer, "Unable to find multicast group %s in %s\n", m.params.MulticastGroupIP, ciliumPod.Name)
+			continue
+		}
+
+		//Delete all ciliumInternalIPs of all nodes from the multicast group's 'subscribers
+		cnt := 0
+		for ip, podName := range ipToPodMap {
+			if ip.IP != "" && ciliumPod.Name != podName {
+				cmd = []string{"cilium-dbg", "bpf", "multicast", "subscriber", "del", m.params.MulticastGroupIP, ip.IP}
+				_, err := m.execInCiliumPod(ctx, ciliumPod, cmd)
+				if err == nil {
+					cnt++
+				}
+			}
+		}
+		fmt.Fprintf(m.params.Writer, "Deleted %d subscribers to multicast group %s\n\n", cnt, m.params.MulticastGroupIP)
+
+		//Delete the multicast group
+		cmd = []string{"cilium-dbg", "bpf", "multicast", "group", "delete", m.params.MulticastGroupIP}
+		_, err = m.execInCiliumPod(ctx, ciliumPod, cmd)
+		if err != nil {
+			fmt.Fprintf(m.params.Writer, "Unable to delete multicast group %s in %s\n", m.params.MulticastGroupIP, ciliumPod.Name)
+			continue
+		} else {
+			fmt.Fprintf(m.params.Writer, "Deleted multicast group %s in %s\n", m.params.MulticastGroupIP, ciliumPod.Name)
+		}
 	}
 
 	return nil

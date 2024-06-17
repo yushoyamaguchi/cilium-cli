@@ -19,6 +19,8 @@ func newCmdMulticast() *cobra.Command {
 	}
 	cmd.AddCommand(
 		newCmdMulticastList(),
+		newCmdMulticastAdd(),
+		newCmdMulticastDel(),
 	)
 	return cmd
 }
@@ -82,4 +84,48 @@ func newCmdMulticastListSubscriber() *cobra.Command {
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
 	return cmd
 
+}
+
+func newCmdMulticastAdd() *cobra.Command {
+	var params = multicast.Parameters{
+		Writer: os.Stdout,
+	}
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "Add CiliumInternalIPs of all nodes to the specified multicast group as subscribers in every cilium-agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			params.CiliumNamespace = namespace
+			mc := multicast.NewMulticast(k8sClient, params)
+			err := mc.AddAllNodes()
+			if err != nil {
+				fatalf("Unable to add CiliumInternalIP of all nodes: %s", err)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&params.MulticastGroupIP, "group-ip", "g", "", "Multicast group IP address")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
+	return cmd
+}
+
+func newCmdMulticastDel() *cobra.Command {
+	var params = multicast.Parameters{
+		Writer: os.Stdout,
+	}
+	cmd := &cobra.Command{
+		Use:   "del",
+		Short: "Delete CiliumInternalIPs of all nodes from the specified multicast group's subscribers in every cilium-agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			params.CiliumNamespace = namespace
+			mc := multicast.NewMulticast(k8sClient, params)
+			err := mc.DelAllNodes()
+			if err != nil {
+				fatalf("Unable to delete CiliumInternalIP of all nodes: %s", err)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&params.MulticastGroupIP, "group-ip", "g", "", "Multicast group IP address")
+	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
+	return cmd
 }
