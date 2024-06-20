@@ -12,5 +12,5 @@ type yamaTest1 struct{}
 
 func (t yamaTest1) build(ct *check.ConnectivityTest, _ map[string]string) {
 	newTest("yama-test1", ct).
-		WithScenarios(tests.PodToPod())
+		WithScenarios(tests.PodToPodMulti())
 }

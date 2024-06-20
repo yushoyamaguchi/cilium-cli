@@ -165,3 +165,60 @@ func (s *podToPodWithEndpoints) curlEndpoints(ctx context.Context, t *check.Test
 		}
 	}
 }
+
+func PodToPodMulti(opts ...Option) check.Scenario {
+	options := &labelsOption{}
+	for _, opt := range opts {
+		opt(options)
+	}
+	return &podToPodMulti{
+		sourceLabels:      options.sourceLabels,
+		destinationLabels: options.destinationLabels,
+		method:            options.method,
+	}
+}
+
+type podToPodMulti struct {
+	sourceLabels      map[string]string
+	destinationLabels map[string]string
+	method            string
+}
+
+func (s *podToPodMulti) Name() string {
+	return "pod-to-pod-multi"
+}
+
+func (s *podToPodMulti) Run(ctx context.Context, t *check.Test) {
+	var i int
+	ct := t.Context()
+
+	for _, client := range ct.ClientPods() {
+		client := client // copy to avoid memory aliasing when using reference
+		if !hasAllLabels(client, s.sourceLabels) {
+			continue
+		}
+		for _, echo := range ct.EchoPods() {
+			if !hasAllLabels(echo, s.destinationLabels) {
+				continue
+			}
+			t.ForEachIPFamily(func(ipFam features.IPFamily) {
+				t.NewAction(s, fmt.Sprintf("curl-%s-%d", ipFam, i), &client, echo, ipFam).Run(func(a *check.Action) {
+					fmt.Println("curl command: ", ct.CurlCommand(echo, ipFam))
+					if s.method == "" {
+						a.ExecInPod(ctx, ct.CurlCommand(echo, ipFam))
+					} else {
+						a.ExecInPod(ctx, ct.CurlCommand(echo, ipFam, "-X", s.method))
+					}
+
+					a.ValidateFlows(ctx, client, a.GetEgressRequirements(check.FlowParameters{}))
+					a.ValidateFlows(ctx, echo, a.GetIngressRequirements(check.FlowParameters{}))
+
+					a.ValidateMetrics(ctx, echo, a.GetIngressMetricsRequirements())
+					a.ValidateMetrics(ctx, echo, a.GetEgressMetricsRequirements())
+				})
+			})
+
+			i++
+		}
+	}
+}
