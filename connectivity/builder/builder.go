@@ -236,6 +236,7 @@ func concurrentTests(connTests []*check.ConnectivityTest) error {
 		podToK8sOnControlplane{},
 		podToControlplaneHostCidr{},
 		podToK8sOnControlplaneCidr{},
+		yamaTest1{},
 	}
 	return injectTests(tests, connTests...)
 }
