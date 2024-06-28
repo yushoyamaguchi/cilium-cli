@@ -50,7 +50,7 @@ func newCmdMulticastListGroup() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			params.CiliumNamespace = namespace
 			mc := multicast.NewMulticast(k8sClient, params)
-			err := mc.ListGroup()
+			err := mc.ListGroups()
 			if err != nil {
 				fatalf("Unable to list multicast groups: %s", err)
 			}
@@ -72,7 +72,7 @@ func newCmdMulticastListSubscriber() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			params.CiliumNamespace = namespace
 			mc := multicast.NewMulticast(k8sClient, params)
-			err := mc.ListSubscriber()
+			err := mc.ListSubscribers()
 			if err != nil {
 				fatalf("Unable to list subscribers of the multicast group: %s", err)
 			}

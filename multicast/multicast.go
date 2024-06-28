@@ -89,7 +89,7 @@ func (m *Multicast) listCiliumPods(ctx context.Context) ([]corev1.Pod, error) {
 }
 
 // ListGroup lists multicast groups in every node
-func (m *Multicast) ListGroup() error {
+func (m *Multicast) ListGroups() error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
 
@@ -130,7 +130,7 @@ func (m *Multicast) ListGroup() error {
 }
 
 // ListSubscriber lists multicast subscribers in every node for the specified multicast group or all multicast groups
-func (m *Multicast) ListSubscriber() error {
+func (m *Multicast) ListSubscribers() error {
 	if m.params.MulticastGroupIP == "" && !m.params.All {
 		return fmt.Errorf("group-ip or all flag must be specified")
 	} else if m.params.MulticastGroupIP != "" && m.params.All {
