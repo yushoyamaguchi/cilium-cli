@@ -113,21 +113,21 @@ func (m *Multicast) ListGroups() error {
 				errCh <- err
 				return
 			}
-			output_string := "Node: " + pod.Spec.NodeName + "\n" + output.String()
-			fmt.Fprintln(m.params.Writer, output_string)
+			outputString := "Node: " + pod.Spec.NodeName + "\n" + output.String()
+			fmt.Fprintln(m.params.Writer, outputString)
 		}(ciliumPod)
 	}
 
 	wg.Wait()
 	close(errCh)
 
-	var err_ret error
+	var errRet error
 	for fetchdata := range errCh {
 		if fetchdata != nil {
-			err_ret = errors.Join(err_ret, fetchdata)
+			errRet = errors.Join(errRet, fetchdata)
 		}
 	}
-	return err_ret
+	return errRet
 }
 
 // ListSubscriber lists multicast subscribers in every node for the specified multicast group or all multicast groups
@@ -171,21 +171,21 @@ func (m *Multicast) ListSubscribers() error {
 					return
 				}
 			}
-			output_string := "Node: " + pod.Spec.NodeName + "\n" + output.String()
-			fmt.Fprintln(m.params.Writer, output_string)
+			outputString := "Node: " + pod.Spec.NodeName + "\n" + output.String()
+			fmt.Fprintln(m.params.Writer, outputString)
 		}(ciliumPod)
 	}
 
 	wg.Wait()
 	close(errCh)
 
-	var err_ret error
+	var errRet error
 	for fetchdata := range errCh {
 		if fetchdata != nil {
-			err_ret = errors.Join(err_ret, fetchdata)
+			errRet = errors.Join(errRet, fetchdata)
 		}
 	}
-	return err_ret
+	return errRet
 }
 
 func (m *Multicast) populateMaps(ciliumPods []corev1.Pod, ipToPodMap map[v2.NodeAddress]string, ipToNodeMap map[v2.NodeAddress]string) error {
@@ -209,13 +209,13 @@ func (m *Multicast) populateMaps(ciliumPods []corev1.Pod, ipToPodMap map[v2.Node
 	wg.Wait()
 	close(errCh)
 
-	var err_ret error
+	var errRet error
 	for fetchdata := range errCh {
 		if fetchdata != nil {
-			err_ret = errors.Join(err_ret, fetchdata)
+			errRet = errors.Join(errRet, fetchdata)
 		}
 	}
-	return err_ret
+	return errRet
 }
 
 // AddAllNodes add CiliumInternalIPs of all nodes to the specified multicast group as subscribers in every cilium-agent
@@ -265,7 +265,7 @@ func (m *Multicast) AddAllNodes() error {
 			//Add all ciliumInternalIPs of all nodes to the multicast group as subscribers
 			cnt := 0
 			var nodeLists []string
-			var display_output string
+			var displayOutput string
 			for ip, podName := range ipToPodMap {
 				if ip.IP != "" && pod.Name != podName { //My node itself does not need to be in a multicast group.
 					cmd = []string{"cilium-dbg", "bpf", "multicast", "subscriber", "add", m.params.MulticastGroupIP, ip.IP}
@@ -285,31 +285,31 @@ func (m *Multicast) AddAllNodes() error {
 				return
 			}
 			if cnt == 1 {
-				display_output = "Added a node ("
+				displayOutput = "Added a node ("
 			} else {
-				display_output = fmt.Sprintf("Added %d nodes (", cnt)
+				displayOutput = fmt.Sprintf("Added %d nodes (", cnt)
 			}
 			for i, node := range nodeLists {
 				if i == len(nodeLists)-1 {
-					display_output += node
+					displayOutput += node
 				} else {
-					display_output += node + ", "
+					displayOutput += node + ", "
 				}
 			}
-			display_output += fmt.Sprintf(") to multicast group %s in %s\n", m.params.MulticastGroupIP, pod.Spec.NodeName)
-			fmt.Fprint(m.params.Writer, display_output)
+			displayOutput += fmt.Sprintf(") to multicast group %s in %s\n", m.params.MulticastGroupIP, pod.Spec.NodeName)
+			fmt.Fprint(m.params.Writer, displayOutput)
 		}(ciliumPod)
 	}
 
 	wg.Wait()
 	close(errCh)
-	var err_ret error
+	var errRet error
 	for fetchdata := range errCh {
 		if fetchdata != nil {
-			err_ret = errors.Join(err_ret, fetchdata)
+			errRet = errors.Join(errRet, fetchdata)
 		}
 	}
-	return err_ret
+	return errRet
 }
 
 // DelAllNodes delete CiliumInternalIPs of all nodes from the specified multicast group's subscribers in every cilium-agent
@@ -363,11 +363,11 @@ func (m *Multicast) DelAllNodes() error {
 	wg.Wait()
 	close(errCh)
 
-	var err_ret error
+	var errRet error
 	for fetchdata := range errCh {
 		if fetchdata != nil {
-			err_ret = errors.Join(err_ret, fetchdata)
+			errRet = errors.Join(errRet, fetchdata)
 		}
 	}
-	return err_ret
+	return errRet
 }
