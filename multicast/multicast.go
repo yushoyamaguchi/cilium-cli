@@ -81,23 +81,16 @@ func (m *Multicast) getCiliumInternalIP(nodeName string) (v2.NodeAddress, error)
 	return ciliumInternalIP, nil
 }
 
-func (m *Multicast) listCiliumPods(ctx context.Context) ([]corev1.Pod, error) {
-	ciliumPods, err := m.client.ListPods(ctx, m.params.CiliumNamespace, metav1.ListOptions{LabelSelector: "k8s-app=cilium"})
-	if err != nil {
-		return nil, fmt.Errorf("unable to list Cilium pods: %w", err)
-	}
-	return ciliumPods.Items, nil
-}
-
 // ListGroup lists multicast groups in every node
 func (m *Multicast) ListGroups() error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
 
-	ciliumPods, err := m.listCiliumPods(ctx)
+	ciliumPodsList, err := m.client.ListPods(ctx, m.params.CiliumNamespace, metav1.ListOptions{LabelSelector: "k8s-app=cilium"})
 	if err != nil {
 		return err
 	}
+	ciliumPods := ciliumPodsList.Items
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(ciliumPods))
@@ -147,10 +140,11 @@ func (m *Multicast) ListSubscribers() error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
 
-	ciliumPods, err := m.listCiliumPods(ctx)
+	ciliumPodsList, err := m.client.ListPods(ctx, m.params.CiliumNamespace, metav1.ListOptions{LabelSelector: "k8s-app=cilium"})
 	if err != nil {
 		return err
 	}
+	ciliumPods := ciliumPodsList.Items
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(ciliumPods))
@@ -225,10 +219,12 @@ func (m *Multicast) AddAllNodes() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
-	ciliumPods, err := m.listCiliumPods(ctx)
+
+	ciliumPodsList, err := m.client.ListPods(ctx, m.params.CiliumNamespace, metav1.ListOptions{LabelSelector: "k8s-app=cilium"})
 	if err != nil {
 		return err
 	}
+	ciliumPods := ciliumPodsList.Items
 
 	//Create a map of ciliumInternalIPs of all nodes
 	ipToPodMap := make(map[v2.NodeAddress]string)
@@ -319,10 +315,12 @@ func (m *Multicast) DelAllNodes() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), m.params.WaitDuration)
 	defer cancel()
-	ciliumPods, err := m.listCiliumPods(ctx)
+
+	ciliumPodsList, err := m.client.ListPods(ctx, m.params.CiliumNamespace, metav1.ListOptions{LabelSelector: "k8s-app=cilium"})
 	if err != nil {
 		return err
 	}
+	ciliumPods := ciliumPodsList.Items
 
 	//Create a map of ciliumInternalIPs of all nodes
 	ipToPodMap := make(map[v2.NodeAddress]string)
