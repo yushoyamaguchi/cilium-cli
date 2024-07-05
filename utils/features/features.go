@@ -69,6 +69,8 @@ const (
 
 	IPsecEnabled                  Feature = "enable-ipsec"
 	ClusterMeshEnableEndpointSync Feature = "clustermesh-enable-endpoint-sync"
+
+	Multicast Feature = "multicast-enabled"
 )
 
 // Feature is the name of a Cilium Feature (e.g. l7-proxy, cni chaining mode etc)
@@ -288,6 +290,10 @@ func (fs Set) ExtractFromConfigMap(cm *v1.ConfigMap) {
 
 	fs[ClusterMeshEnableEndpointSync] = Status{
 		Enabled: cm.Data[string(ClusterMeshEnableEndpointSync)] == "true",
+	}
+
+	fs[Multicast] = Status{
+		Enabled: cm.Data[string(Multicast)] == "true",
 	}
 }
 

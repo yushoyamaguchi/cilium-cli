@@ -6,11 +6,19 @@ package builder
 import (
 	"github.com/cilium/cilium-cli/connectivity/check"
 	"github.com/cilium/cilium-cli/connectivity/tests"
+	"github.com/cilium/cilium-cli/utils/features"
+	"github.com/cilium/cilium/pkg/versioncheck"
 )
 
 type multicastTest struct{}
 
 func (t multicastTest) build(ct *check.ConnectivityTest, _ map[string]string) {
 	newTest("multicast", ct).
+		WithCondition(func() bool {
+			return versioncheck.MustCompile(">=1.16.0")(ct.CiliumVersion)
+		}).
+		WithFeatureRequirements(
+			features.RequireEnabled(features.Multicast),
+		).
 		WithScenarios(tests.MulticastTest())
 }
