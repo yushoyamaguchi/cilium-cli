@@ -56,6 +56,7 @@ type Parameters struct {
 	TestConnDisruptImage   string
 	AgentDaemonSetName     string
 	DNSTestServerImage     string
+	Iperf2Image            string
 	IncludeUnsafeTests     bool
 	AgentPodSelector       string
 	CiliumPodSelector      string
