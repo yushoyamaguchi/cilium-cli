@@ -62,6 +62,8 @@ const (
 	testConnDisruptServerDeploymentName = "test-conn-disrupt-server"
 	testConnDisruptServiceName          = "test-conn-disrupt"
 	KindTestConnDisrupt                 = "test-conn-disrupt"
+
+	testMulticastIperf2DeploymentName = "test-multicast-iperf2"
 )
 
 type deploymentParameters struct {
@@ -906,6 +908,14 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 					return fmt.Errorf("unable to create deployment %s: %s", echoExternalNodeDeploymentName, err)
 				}
 			}
+		}
+		if ct.Features[features.Multicast].Enabled {
+			// yama:deploy anything for multicast
+			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2DeploymentName, metav1.GetOptions{})
+			if err != nil {
+				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2DeploymentName)
+				// Deploy the depoyment for multicast test
+			}
 		} else {
 			ct.Infof("Skipping tests that require a node Without Cilium")
 		}
@@ -1243,6 +1253,11 @@ func (ct *ConnectivityTest) validateDeployment(ctx context.Context) error {
 				port:      uint32(ct.Params().ExternalDeploymentPort), // listen port of the echo server inside the container
 			}
 		}
+	}
+
+	if ct.Features[features.Multicast].Enabled {
+		// yama:validate anything for multicast
+		ct.Infof("yama_dbg")
 	}
 
 	for _, cp := range ct.clientPods {
