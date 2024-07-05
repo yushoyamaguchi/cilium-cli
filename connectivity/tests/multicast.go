@@ -21,5 +21,7 @@ func (s *multicastTest) Name() string {
 }
 
 func (s *multicastTest) Run(ctx context.Context, t *check.Test) {
-	t.Logf("Running multicast test")
+	t.NewAction(s, "multicast", nil, nil, 0).Run(func(a *check.Action) {
+		a.PuseudoFail()
+	})
 }

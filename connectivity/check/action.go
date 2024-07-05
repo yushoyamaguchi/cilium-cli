@@ -1072,3 +1072,9 @@ func (a *Action) validateMetric(ctx context.Context, node string, result Metrics
 		}
 	}
 }
+
+func (a *Action) PuseudoFail() {
+	// This is a pseudo validation that is used to avoid the panic in the case of
+	// the metrics validation is not enabled.
+	a.Failf("metrics validation is not enabled")
+}
