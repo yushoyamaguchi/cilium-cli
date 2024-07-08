@@ -17,6 +17,9 @@ func (t multicastTest) build(ct *check.ConnectivityTest, _ map[string]string) {
 		WithCondition(func() bool {
 			return versioncheck.MustCompile(">=1.16.0")(ct.CiliumVersion)
 		}).
+		WithCondition(func() bool {
+			return ct.Params().IncludeUnsafeTests
+		}).
 		WithFeatureRequirements(
 			features.RequireEnabled(features.Multicast),
 		).
