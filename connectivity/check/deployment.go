@@ -53,7 +53,8 @@ const (
 	kindEchoExternalNodeName                   = "echo-external-node"
 	kindClientName                             = "client"
 	kindPerfName                               = "perf"
-	kindIperf2Name                             = "iperf2"
+	kindIperf2ServerName                       = "iperf2-server"
+	kindIperf2ClientName                       = "iperf2-client"
 
 	hostNetNSDeploymentName          = "host-netns"
 	hostNetNSDeploymentNameNonCilium = "host-netns-non-cilium" // runs on non-Cilium test nodes
@@ -64,7 +65,8 @@ const (
 	testConnDisruptServiceName          = "test-conn-disrupt"
 	KindTestConnDisrupt                 = "test-conn-disrupt"
 
-	testMulticastIperf2DeploymentName = "test-multicast-iperf2"
+	testMulticastIperf2ServerDeploymentName = "test-multicast-iperf2-server"
+	testMulticastIperf2ClientDeploymentName = "test-multicast-iperf2-client"
 )
 
 type deploymentParameters struct {
@@ -912,18 +914,39 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 		}
 		if ct.Features[features.Multicast].Enabled {
 			// yama:deploy anything for multicast
-			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2DeploymentName, metav1.GetOptions{})
+			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName, metav1.GetOptions{})
 			if err != nil {
-				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2DeploymentName)
+				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ServerDeploymentName)
 				// Deploy the depoyment for multicast test
 				iperf2ServerDeployment := newDeployment(deploymentParameters{
-					Name:  testMulticastIperf2DeploymentName,
-					Kind:  kindIperf2Name,
+					Name:  testMulticastIperf2ServerDeploymentName,
+					Kind:  kindIperf2ServerName,
 					Image: ct.params.Iperf2Image,
 				})
-				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2DeploymentName), metav1.CreateOptions{})
+				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2ServerDeploymentName), metav1.CreateOptions{})
 				if err != nil {
-					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2DeploymentName, err)
+					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2ServerDeploymentName, err)
+				}
+				_, err = ct.clients.src.CreateDeployment(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
+				if err != nil {
+					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
+				}
+			}
+		}
+		if ct.Features[features.Multicast].Enabled {
+			// yama:deploy anything for multicast
+			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName, metav1.GetOptions{})
+			if err != nil {
+				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ClientDeploymentName)
+				// Deploy the depoyment for multicast test
+				iperf2ServerDeployment := newDeployment(deploymentParameters{
+					Name:  testMulticastIperf2ClientDeploymentName,
+					Kind:  kindIperf2ClientName,
+					Image: ct.params.Iperf2Image,
+				})
+				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2ClientDeploymentName), metav1.CreateOptions{})
+				if err != nil {
+					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2ServerDeploymentName, err)
 				}
 				_, err = ct.clients.src.CreateDeployment(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
 				if err != nil {
