@@ -53,6 +53,7 @@ const (
 	kindEchoExternalNodeName                   = "echo-external-node"
 	kindClientName                             = "client"
 	kindPerfName                               = "perf"
+	kindIperf2Name                             = "iperf2"
 
 	hostNetNSDeploymentName          = "host-netns"
 	hostNetNSDeploymentNameNonCilium = "host-netns-non-cilium" // runs on non-Cilium test nodes
@@ -915,6 +916,19 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 			if err != nil {
 				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2DeploymentName)
 				// Deploy the depoyment for multicast test
+				iperf2ServerDeployment := newDeployment(deploymentParameters{
+					Name:  testMulticastIperf2DeploymentName,
+					Kind:  kindIperf2Name,
+					Image: ct.params.Iperf2Image,
+				})
+				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2DeploymentName), metav1.CreateOptions{})
+				if err != nil {
+					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2DeploymentName, err)
+				}
+				_, err = ct.clients.src.CreateDeployment(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
+				if err != nil {
+					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
+				}
 			}
 		} else {
 			ct.Infof("Skipping tests that require a node Without Cilium")
