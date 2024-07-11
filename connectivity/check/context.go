@@ -69,6 +69,9 @@ type ConnectivityTest struct {
 	k8sService        Service
 	externalWorkloads map[string]ExternalWorkload
 
+	multicastIperf2ClientPods map[string]Pod
+	multicastIperf2ServerPods map[string]Pod
+
 	hostNetNSPodsByNode      map[string]Pod
 	secondaryNetworkNodeIPv4 map[string]string // node name => secondary ip
 	secondaryNetworkNodeIPv6 map[string]string // node name => secondary ip

@@ -1134,6 +1134,8 @@ func (ct *ConnectivityTest) deleteDeployments(ctx context.Context, client *k8s.C
 	_ = client.DeleteDeployment(ctx, ct.params.TestNamespace, clientDeploymentName, metav1.DeleteOptions{})
 	_ = client.DeleteDeployment(ctx, ct.params.TestNamespace, client2DeploymentName, metav1.DeleteOptions{})
 	_ = client.DeleteDeployment(ctx, ct.params.TestNamespace, client3DeploymentName, metav1.DeleteOptions{})
+	_ = client.DeleteDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName, metav1.DeleteOptions{})
+	_ = client.DeleteDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName, metav1.DeleteOptions{})
 	_ = client.DeleteServiceAccount(ctx, ct.params.TestNamespace, echoSameNodeDeploymentName, metav1.DeleteOptions{})
 	_ = client.DeleteServiceAccount(ctx, ct.params.TestNamespace, echoOtherNodeDeploymentName, metav1.DeleteOptions{})
 	_ = client.DeleteServiceAccount(ctx, ct.params.TestNamespace, clientDeploymentName, metav1.DeleteOptions{})
@@ -1294,6 +1296,26 @@ func (ct *ConnectivityTest) validateDeployment(ctx context.Context) error {
 
 	if ct.Features[features.Multicast].Enabled {
 		// yama:validate anything for multicast
+		iperf2ServerPods, err := ct.clients.src.ListPods(ctx, ct.params.TestNamespace, metav1.ListOptions{LabelSelector: "name=" + testMulticastIperf2ServerDeploymentName})
+		if err != nil {
+			return fmt.Errorf("unable to list iperf2 server pods: %w", err)
+		}
+		for _, pod := range iperf2ServerPods.Items {
+			ct.multicastIperf2ServerPods[pod.Name] = Pod{
+				K8sClient: ct.client,
+				Pod:       pod.DeepCopy(),
+			}
+		}
+		iperf2ClientPods, err := ct.clients.src.ListPods(ctx, ct.params.TestNamespace, metav1.ListOptions{LabelSelector: "name=" + testMulticastIperf2ClientDeploymentName})
+		if err != nil {
+			return fmt.Errorf("unable to list iperf2 client pods: %w", err)
+		}
+		for _, pod := range iperf2ClientPods.Items {
+			ct.multicastIperf2ClientPods[pod.Name] = Pod{
+				K8sClient: ct.client,
+				Pod:       pod.DeepCopy(),
+			}
+		}
 		ct.Infof("yama_dbg")
 	}
 
