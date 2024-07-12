@@ -914,11 +914,11 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 		}
 		if ct.Features[features.Multicast].Enabled {
 			// yama:deploy anything for multicast
-			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName, metav1.GetOptions{})
+			_, err = ct.clients.src.GetDaemonSet(ctx, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName, metav1.GetOptions{})
 			if err != nil {
-				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ServerDeploymentName)
+				ct.Logf("✨ [%s] Deploying %s daemonset...", ct.clients.src.ClusterName(), testMulticastIperf2ServerDeploymentName)
 				// Deploy the depoyment for multicast test
-				iperf2ServerDeployment := newDeployment(deploymentParameters{
+				iperf2ServerDeployment := newDaemonSet(daemonSetParameters{
 					Name:    testMulticastIperf2ServerDeploymentName,
 					Kind:    kindIperf2ServerName,
 					Image:   ct.params.Iperf2Image,
@@ -928,23 +928,19 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2ServerDeploymentName, err)
 				}
-				_, err = ct.clients.src.CreateDeployment(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
+				_, err = ct.clients.src.CreateDaemonSet(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
 				}
 			}
-			err = WaitForDeployment(ctx, ct, ct.clients.src, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName)
-			if err != nil {
-				return fmt.Errorf("deployment %s is not ready: %w", testMulticastIperf2ServerDeploymentName, err)
-			}
 		}
 		if ct.Features[features.Multicast].Enabled {
 			// yama:deploy anything for multicast
-			_, err = ct.clients.src.GetDeployment(ctx, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName, metav1.GetOptions{})
+			_, err = ct.clients.src.GetDaemonSet(ctx, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName, metav1.GetOptions{})
 			if err != nil {
-				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ClientDeploymentName)
+				ct.Logf("✨ [%s] Deploying %s daemonset...", ct.clients.src.ClusterName(), testMulticastIperf2ClientDeploymentName)
 				// Deploy the depoyment for multicast test
-				iperf2ServerDeployment := newDeployment(deploymentParameters{
+				iperf2ServerDeployment := newDaemonSet(daemonSetParameters{
 					Name:    testMulticastIperf2ClientDeploymentName,
 					Kind:    kindIperf2ClientName,
 					Image:   ct.params.Iperf2Image,
@@ -954,14 +950,10 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("unable to create service account %s: %s", testMulticastIperf2ServerDeploymentName, err)
 				}
-				_, err = ct.clients.src.CreateDeployment(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
+				_, err = ct.clients.src.CreateDaemonSet(ctx, ct.params.TestNamespace, iperf2ServerDeployment, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
 				}
-			}
-			err = WaitForDeployment(ctx, ct, ct.clients.src, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName)
-			if err != nil {
-				return fmt.Errorf("deployment %s is not ready: %w", testMulticastIperf2ClientDeploymentName, err)
 			}
 		} else {
 			ct.Infof("Skipping tests that require a node Without Cilium")
@@ -1326,7 +1318,6 @@ func (ct *ConnectivityTest) validateDeployment(ctx context.Context) error {
 				Pod:       pod.DeepCopy(),
 			}
 		}
-		ct.Infof("yama_dbg")
 	}
 
 	for _, cp := range ct.clientPods {
