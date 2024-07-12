@@ -919,9 +919,10 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ServerDeploymentName)
 				// Deploy the depoyment for multicast test
 				iperf2ServerDeployment := newDeployment(deploymentParameters{
-					Name:  testMulticastIperf2ServerDeploymentName,
-					Kind:  kindIperf2ServerName,
-					Image: ct.params.Iperf2Image,
+					Name:    testMulticastIperf2ServerDeploymentName,
+					Kind:    kindIperf2ServerName,
+					Image:   ct.params.Iperf2Image,
+					Command: []string{"/bin/bash", "-c", "sleep 10000000"},
 				})
 				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2ServerDeploymentName), metav1.CreateOptions{})
 				if err != nil {
@@ -932,6 +933,10 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
 				}
 			}
+			err = WaitForDeployment(ctx, ct, ct.clients.src, ct.params.TestNamespace, testMulticastIperf2ServerDeploymentName)
+			if err != nil {
+				return fmt.Errorf("deployment %s is not ready: %w", testMulticastIperf2ServerDeploymentName, err)
+			}
 		}
 		if ct.Features[features.Multicast].Enabled {
 			// yama:deploy anything for multicast
@@ -940,9 +945,10 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 				ct.Logf("✨ [%s] Deploying %s deployment...", ct.clients.src.ClusterName(), testMulticastIperf2ClientDeploymentName)
 				// Deploy the depoyment for multicast test
 				iperf2ServerDeployment := newDeployment(deploymentParameters{
-					Name:  testMulticastIperf2ClientDeploymentName,
-					Kind:  kindIperf2ClientName,
-					Image: ct.params.Iperf2Image,
+					Name:    testMulticastIperf2ClientDeploymentName,
+					Kind:    kindIperf2ClientName,
+					Image:   ct.params.Iperf2Image,
+					Command: []string{"/bin/bash", "-c", "sleep 10000000"},
 				})
 				_, err = ct.clients.src.CreateServiceAccount(ctx, ct.params.TestNamespace, k8s.NewServiceAccount(testMulticastIperf2ClientDeploymentName), metav1.CreateOptions{})
 				if err != nil {
@@ -952,6 +958,10 @@ func (ct *ConnectivityTest) deploy(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("unable to create deployment %s: %w", iperf2ServerDeployment, err)
 				}
+			}
+			err = WaitForDeployment(ctx, ct, ct.clients.src, ct.params.TestNamespace, testMulticastIperf2ClientDeploymentName)
+			if err != nil {
+				return fmt.Errorf("deployment %s is not ready: %w", testMulticastIperf2ClientDeploymentName, err)
 			}
 		} else {
 			ct.Infof("Skipping tests that require a node Without Cilium")

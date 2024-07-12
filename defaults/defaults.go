@@ -72,7 +72,7 @@ const (
 	// renovate: datasource=docker
 	ConnectivityTestConnDisruptImage = "quay.io/cilium/test-connection-disruption:v0.0.14@sha256:c3fd56e326ae16f6cb63dbb2e26b4e47ec07a123040623e11399a7fe1196baa0"
 	// renovate: datasource=docker
-	ConnectivityTestIperf2Image = "docker.io/czero/iperf2:latest@sha256:sha256-5cf19986a10c414e4327f058db68b077cf8c92af2d25512ef8b7727f8454fd1d"
+	ConnectivityTestIperf2Image = "docker.io/nicolaka/netshoot:v0.13@sha256:a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b"
 
 	ConfigMapName = "cilium-config"
 
